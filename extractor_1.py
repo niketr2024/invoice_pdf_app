@@ -32,3 +32,4 @@ def extract_invoice_type_1(pdf_path):
     # make into dataframe
     df = pd.DataFrame(rows)
     return df[['備考', '新単価']]
+

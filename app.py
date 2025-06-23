@@ -3,41 +3,45 @@ import pandas as pd
 import tempfile
 from dispatcher import select_extractor
 
-def process_invoice(file):
+def process_multiple_invoice(files):
+    all_rows = []
+
     try:
-        # file is a bytes object, no need to call .read()
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-            tmp.write(file)
-            tmp_path = tmp.name
+        # runs the appropriate extractor based on the invoice from dispatcher.py
+        for tmp_path in files:
+            extractor = select_extractor(tmp_path)
+            df = extractor(tmp_path)
+            all_rows.append(df)
 
-        #retreives appropriate extractor from dispatcher.py
-        extractor = select_extractor(tmp_path)
-        #runs the appropriate extractor ( 1 or 2)
-        df = extractor(tmp_path)
+        # combines results
+        combined_df = pd.concat(all_rows, ignore_index=True)
 
-        #converts extracted file to xlsx and saves it as excel file
-        excel_path = tmp_path.replace(".pdf", ".xlsx")
-        df.to_excel(excel_path, index=False)
+        # converts to Excel file and saves path
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_excel:
+            excel_path = tmp_excel.name
+            combined_df.to_excel(excel_path, index=False)
 
-        return df, excel_path
+        return combined_df, excel_path
+
 
     except Exception as e:
         print(f"Error: {e}")
         empty_df = pd.DataFrame(columns=["備考", "新単価"])
         return empty_df, None
 
+# app interface
 iface = gr.Interface(
-    fn=process_invoice,
-    inputs=gr.File(label="Upload Invoice PDF", type="binary"),  # this returns file-like object
+    fn=process_multiple_invoice,
+    inputs=gr.File(label="Upload Multiple Invoice PDF", type="filepath", file_types=['.pdf'], file_count="multiple"),
     outputs=[
-        gr.Dataframe(label="Extracted Table"),
-        gr.File(label="Download Excel")
+        gr.Dataframe(label="Combined Extracted Table"),
+        gr.File(label="Download Combined Excel")
     ],
-    title="Invoice PDF Extractor",
-    description="Upload a PDF from 東京材料株式会社 or 三井物産プラスチック株式会社"
+    title="Multi Invoice PDF Extractor",
+    description="Upload multiple PDFs from 東京材料株式会社 or 三井物産プラスチック株式会社"
 )
 
-# if running script directly, start app in browser
+
 if __name__ == "__main__":
     iface.launch()
 
