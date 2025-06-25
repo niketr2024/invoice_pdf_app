@@ -1,7 +1,12 @@
 import gradio as gr
 import pandas as pd
 import tempfile
+import os
 from dispatcher import select_extractor
+from datetime import datetime
+
+#Path to your shared folder
+SHARED_FOLDER = r"G:\共有ドライブ\00_SharedDrive_01"
 
 def process_multiple_invoice(files):
     all_rows = []
@@ -16,13 +21,15 @@ def process_multiple_invoice(files):
         # combines results
         combined_df = pd.concat(all_rows, ignore_index=True)
 
-        # converts to Excel file and saves path
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_excel:
-            excel_path = tmp_excel.name
-            combined_df.to_excel(excel_path, index=False)
+        # Create unique filename with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_name = f"invoices_combined_{timestamp}.xlsx"
+        excel_path = os.path.join(SHARED_FOLDER, file_name)
+
+        # Save directly to shared drive
+        combined_df.to_excel(excel_path, index=False)
 
         return combined_df, excel_path
-
 
     except Exception as e:
         print(f"Error: {e}")
@@ -41,7 +48,6 @@ iface = gr.Interface(
     description="Upload multiple PDFs from 東京材料株式会社 or 三井物産プラスチック株式会社"
 )
 
-
 if __name__ == "__main__":
-    iface.launch()
-
+    #iface.launch()
+    iface.launch(allowed_paths=["G:\\共有ドライブ\\00_SharedDrive_01"])
